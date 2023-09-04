@@ -7,55 +7,60 @@ class ThreadPool {
     private final List<Thread> threads;
     private final List<Runnable> tasks;
     private boolean isStopped;
-
-    public ThreadPool() {
+    
+    public ThreadPool(int maxThreads) {
+        if (maxThreads <= 0) {
+            throw new IllegalArgumentException("Max threads must be greater than 0");
+        }
         threads = new ArrayList<>();
         tasks = new ArrayList<>();
         isStopped = false;
+
+        for (int i = 0; i < maxThreads; i++) {
+            createThread();
+        }
     }
 
-    public synchronized void execute(Runnable task) {
-        if (isStopped)
-            throw new IllegalStateException("ThreadPool stopped. Cant execute new tasks!");
+    private void createThread() {
+        Thread thread = new Thread(() -> {
+            while (true) {
+                Runnable task = null;
 
-        Thread availableThread = null;
-
-        synchronized (threads) {
-            for (Thread thread : threads) {
-                if (!thread.isAlive()) {
-                    availableThread = thread;
-                    break;
-                }
-            }
-        }
-
-        if (availableThread == null) {
-            availableThread = new Thread(() -> {
-                Runnable taskToExecute = null;
-
-                while (true) {
-                    synchronized (tasks) {
-                        while (tasks.isEmpty() && !isStopped) {
-                            try {
-                                tasks.wait();
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
+                synchronized (tasks) {
+                    while (tasks.isEmpty() && !isStopped) {
+                        try {
+                            tasks.wait();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            e.printStackTrace();
                         }
-
-                        if (isStopped)
-                            break;
-
-                        taskToExecute = tasks.remove(0);
                     }
 
-                    taskToExecute.run();
-                }
-            });
+                    if (tasks.isEmpty()) {
+                        break; 
+                    }
 
-            threads.add(availableThread);
-            availableThread.start();
+                    task = tasks.remove(0);
+                }
+
+                task.run();
+            }
+
+            synchronized (threads) {
+                threads.remove(Thread.currentThread()); 
+            }
+        });
+
+        synchronized (threads) {
+            thread.start();
+            threads.add(thread);
         }
+    }
+
+
+    public void execute(Runnable task) {
+        if (isStopped)
+            throw new IllegalStateException("ThreadPool stopped. Cannot execute new tasks!");
 
         synchronized (tasks) {
             tasks.add(task);
