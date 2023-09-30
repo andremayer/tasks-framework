@@ -14,13 +14,14 @@ class Task implements Runnable {
     }
 
     public void run() {
+    	/**
     	try {
     		System.out.println(name + " started wait 2s");
 			Thread.sleep(2000);
 			System.out.println(name + " finished wait 2s");
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}
+		}*/
         System.out.println("Task " + name + " is running on thread: " + Thread.currentThread().getName());
         latch.countDown();
     }

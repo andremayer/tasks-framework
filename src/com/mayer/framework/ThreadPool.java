@@ -31,8 +31,8 @@ class ThreadPool {
                         try {
                             tasks.wait();
                         } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            e.printStackTrace();
+                        	Thread.currentThread().interrupt();
+                            break;
                         }
                     }
 
